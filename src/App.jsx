@@ -7,12 +7,14 @@ const EXP = {
 };
 
 const STATUS = {
-  new:       { label: "Новая заявка",    pill: "#00C853", pillText: "#000" },
-  scheduled: { label: "Назначен созвон", pill: "#FFD600", pillText: "#000" },
-  called:    { label: "Созвон проведён", pill: "#FF8C00", pillText: "#000" },
-  noreply:   { label: "Нет ответа",      pill: "#707070", pillText: "#fff" },
-  postponed: { label: "Отложен",         pill: "#7B5C3E", pillText: "#fff" },
-  rejected:  { label: "Отказ",           pill: "#3A1A1A", pillText: "#FF5252" },
+  new:        { label: "Новая заявка",    pill: "#00C853", pillText: "#000" },
+  written:    { label: "Написал",         pill: "#4FC3F7", pillText: "#000" },
+  chatting:   { label: "Есть ответ",      pill: "#AB47BC", pillText: "#fff" },
+  scheduled:  { label: "Назначен созвон", pill: "#FFD600", pillText: "#000" },
+  called:     { label: "Созвон проведён", pill: "#FF8C00", pillText: "#000" },
+  noreply:    { label: "Нет ответа",      pill: "#707070", pillText: "#fff" },
+  postponed:  { label: "Отложен",         pill: "#7B5C3E", pillText: "#fff" },
+  rejected:   { label: "Отказ",           pill: "#3A1A1A", pillText: "#FF5252" },
 };
 
 const initLeads = [
@@ -26,6 +28,10 @@ const initLeads = [
   { id: 8,  name: "Фотограф",  exp: "beginner", status: "new", phone: "+79028359744", note: "Опыт и боли не указаны.",                                                 vk: "https://vk.com/id148884490", source: "ВК", date: "05 июн", nextAction: "", history: ["05 июн — добавлен"], transcript: null, transcriptName: null, chatHistory: [] },
   { id: 9,  name: "Полина",    exp: "pro",      status: "new", phone: "+79175490433", note: "3+ лет. Зарабатывает, но хочет больше. Не знает где искать клиентов.",    vk: "https://vk.com/id62515646", source: "ВК", date: "06 июн", nextAction: "", history: ["06 июн — добавлен"], transcript: null, transcriptName: null, chatHistory: [] },
   { id: 10, name: "Мария",     exp: "beginner", status: "new", phone: "+79119116881", note: "Опыт и боли не указаны.",                                                 vk: "https://vk.com/id873253",   source: "ВК", date: "07 июн", nextAction: "", history: ["07 июн — добавлен"], transcript: null, transcriptName: null, chatHistory: [] },
+  { id: 11, name: "Marina",    exp: "junior",   status: "new", phone: "+79222111346", note: "1-3 года. Telegram: @Melsepto_photo.",                                       vk: "https://vk.com/id58758169", source: "ВК", date: "10 июн", nextAction: "", history: ["10 июн — добавлен"], transcript: null, transcriptName: null, chatHistory: [] },
+  { id: 12, name: "Ольга",     exp: "beginner", status: "new", phone: "+79681899589", note: "До 1 года. Telegram: @malina_lv.",                                           vk: "https://vk.com/id16366298", source: "ВК", date: "12 июн", nextAction: "", history: ["12 июн — добавлен"], transcript: null, transcriptName: null, chatHistory: [] },
+  { id: 13, name: "Софья",     exp: "beginner", status: "new", phone: "+79063009219", note: "Опыт и боли не указаны.",                                                    vk: "https://vk.com/id177026743", source: "ВК", date: "12 июн", nextAction: "", history: ["12 июн — добавлен"], transcript: null, transcriptName: null, chatHistory: [] },
+  { id: 14, name: "Галина",    exp: "pro",      status: "new", phone: "+79523504890", note: "3+ лет. Контакты не указала.",                                               vk: "https://vk.com/id331603463", source: "ВК", date: "13 июн", nextAction: "", history: ["13 июн — добавлен"], transcript: null, transcriptName: null, chatHistory: [] },
 ];
 
 const initStudents = [
@@ -591,15 +597,14 @@ export default function CRM() {
 
                   <div style={{ display: "flex", gap: 8, marginBottom: 18, alignItems: "center" }}>
                     <div style={{ padding: "6px 16px", borderRadius: 20, background: e.color, color: e.text, fontSize: 12, fontWeight: 800 }}>{e.label}</div>
-                    <button className="fbtn" onClick={() => {
-                      const keys = Object.keys(STATUS);
-                      const idx = keys.indexOf(lead.status);
-                      const next = keys[(idx + 1) % keys.length];
-                      setLeadStatus(lead.id, next);
-                    }} style={{ padding: "6px 16px", borderRadius: 20, background: s.pill, color: s.pillText, fontSize: 12, fontWeight: 800, border: "none", fontFamily: "inherit", cursor: "pointer" }}>
-                      {s.label} ›
-                    </button>
-                    <span style={{ fontSize: 11, color: "#444" }}>тап — следующий</span>
+                    <select
+                      value={lead.status}
+                      onChange={ev => setLeadStatus(lead.id, ev.target.value)}
+                      style={{ padding: "6px 14px", borderRadius: 20, background: s.pill, color: s.pillText, fontSize: 12, fontWeight: 800, border: "none", fontFamily: "inherit", cursor: "pointer", outline: "none", appearance: "none", paddingRight: 28, backgroundImage: "none" }}>
+                      {Object.entries(STATUS).map(([key, val]) => (
+                        <option key={key} value={key} style={{ background: "#1A1A1A", color: "#fff" }}>{val.label}</option>
+                      ))}
+                    </select>
                   </div>
 
                   {/* note */}
