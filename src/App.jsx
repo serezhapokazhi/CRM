@@ -298,7 +298,8 @@ export default function CRM() {
     // fast regex fallback first
     const nameM = text.match(/(?:Имя|ФИО|Контакт)[:\s]+([^\n]+)/i);
     const phoneM = text.match(/(\+?[78][\s\-]?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2})/);
-    setForm(f => ({ ...f, name: nameM?.[1]?.trim() ?? "", phone: phoneM?.[0] ?? "", note: text.slice(0, 120) }));
+    const vkM = text.match(/https?:\/\/(?:www\.)?vk\.com\/[^\s\n]+/);
+    setForm(f => ({ ...f, name: nameM?.[1]?.trim() ?? "", phone: phoneM?.[0] ?? "", vk: vkM?.[0] ?? f.vk, note: text.slice(0, 120) }));
     // AI parse for richer data
     setParsing(true);
     try {
@@ -308,7 +309,7 @@ export default function CRM() {
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
           max_tokens: 300,
-          system: "Из текста заявки извлеки данные и верни ТОЛЬКО JSON без пояснений:\n{\"name\":\"\",\"phone\":\"\",\"note\":\"краткое описание до 80 символов\",\"exp\":\"beginner|junior|pro\"}\nexp: beginner=до 1 года, junior=1-3 года, pro=3+ лет. Если опыт не указан — beginner.",
+          system: "Из текста заявки извлеки данные и верни ТОЛЬКО JSON без пояснений:\n{\"name\":\"\",\"phone\":\"\",\"note\":\"краткое описание до 80 символов\",\"exp\":\"beginner|junior|pro\",\"vk\":\"ссылка на vk.com если есть, иначе пустая строка\"}\nexp: beginner=до 1 года, junior=1-3 года, pro=3+ лет. Если опыт не указан — beginner.",
           messages: [{ role: "user", content: text }]
         })
       });
@@ -563,14 +564,12 @@ export default function CRM() {
               return (
                 <div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
-                    <div style={{ fontWeight: 900, fontSize: 20, letterSpacing: -0.5 }}>{lead.name}</div>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <button className="fbtn" onClick={() => { if (window.confirm(`Удалить ${lead.name}?`)) deleteLead(lead.id); }}
-                        style={{ background: "#3A1A1A", border: "none", color: "#FF5252", padding: "0 12px", height: 32, borderRadius: 8, fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>
-                        Удалить
-                      </button>
-                      <button className="fbtn" onClick={closePanel} style={{ background: "#222", border: "none", color: "#888", width: 32, height: 32, borderRadius: 8, fontSize: 16, flexShrink: 0 }}>×</button>
-                    </div>
+                    <input
+                      value={lead.name}
+                      onChange={ev => updateLead(lead.id, { name: ev.target.value })}
+                      style={{ fontWeight: 900, fontSize: 20, letterSpacing: -0.5, background: "transparent", border: "none", borderBottom: "1.5px solid #2A2A2A", color: "#fff", outline: "none", fontFamily: "inherit", flex: 1, marginRight: 10, paddingBottom: 2 }}
+                    />
+                    <button className="fbtn" onClick={closePanel} style={{ background: "#222", border: "none", color: "#888", width: 32, height: 32, borderRadius: 8, fontSize: 16, flexShrink: 0 }}>×</button>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
                     <span style={{ fontSize: 13, color: "#555" }}>{lead.phone}</span>
@@ -590,9 +589,17 @@ export default function CRM() {
                     )}
                   </div>
 
-                  <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 18, alignItems: "center" }}>
                     <div style={{ padding: "6px 16px", borderRadius: 20, background: e.color, color: e.text, fontSize: 12, fontWeight: 800 }}>{e.label}</div>
-                    <div style={{ padding: "6px 16px", borderRadius: 20, background: s.pill, color: s.pillText, fontSize: 12, fontWeight: 800 }}>{s.label}</div>
+                    <button className="fbtn" onClick={() => {
+                      const keys = Object.keys(STATUS);
+                      const idx = keys.indexOf(lead.status);
+                      const next = keys[(idx + 1) % keys.length];
+                      setLeadStatus(lead.id, next);
+                    }} style={{ padding: "6px 16px", borderRadius: 20, background: s.pill, color: s.pillText, fontSize: 12, fontWeight: 800, border: "none", fontFamily: "inherit", cursor: "pointer" }}>
+                      {s.label} ›
+                    </button>
+                    <span style={{ fontSize: 11, color: "#444" }}>тап — следующий</span>
                   </div>
 
                   {/* note */}
@@ -612,17 +619,7 @@ export default function CRM() {
                     </div>
                   </div>
 
-                  {/* status */}
-                  <div style={{ fontSize: 10, color: "#444", fontWeight: 700, letterSpacing: 1.5, marginBottom: 8 }}>ИЗМЕНИТЬ СТАТУС</div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20 }}>
-                    {Object.entries(STATUS).map(([key, val]) => (
-                      <button key={key} className="fbtn" onClick={() => setLeadStatus(lead.id, key)}
-                        style={{ padding: "7px 14px", borderRadius: 20, border: "none", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
-                          background: lead.status === key ? val.pill : "#1A1A1A", color: lead.status === key ? val.pillText : "#555" }}>
-                        {val.label}
-                      </button>
-                    ))}
-                  </div>
+
 
                   {/* history */}
                   <div style={{ fontSize: 10, color: "#444", fontWeight: 700, letterSpacing: 1.5, marginBottom: 8 }}>ИСТОРИЯ</div>
@@ -646,9 +643,16 @@ export default function CRM() {
                     accentText={e.text}
                   />
 
-                  <div style={{ marginTop: 22 }}>
+                  <div style={{ marginTop: 22, display: "flex", flexDirection: "column", gap: 10 }}>
                     <button className="fbtn" style={{ width: "100%", padding: 14, background: e.color, color: e.text, border: "none", borderRadius: 20, fontSize: 14, fontWeight: 800, fontFamily: "inherit" }}>
                       Перевести в студенты →
+                    </button>
+                    <button className="fbtn" onClick={closePanel} style={{ width: "100%", padding: 12, background: "transparent", color: "#555", border: "1px solid #2A2A2A", borderRadius: 20, fontSize: 13, fontFamily: "inherit" }}>
+                      Закрыть
+                    </button>
+                    <button className="fbtn" onClick={() => { if (window.confirm(`Удалить ${lead.name}?`)) deleteLead(lead.id); }}
+                      style={{ width: "100%", padding: 12, background: "transparent", color: "#FF5252", border: "1px solid #3A1A1A", borderRadius: 20, fontSize: 13, fontFamily: "inherit" }}>
+                      Удалить лида
                     </button>
                   </div>
                 </div>
