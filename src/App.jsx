@@ -72,6 +72,59 @@ async function askClaude(messages, systemPrompt) {
 const inp = { background: "#1C1C1C", border: "none", borderRadius: 10, color: "#fff", padding: "11px 14px", fontSize: 13, fontFamily: "inherit", width: "100%", outline: "none" };
 
 // ── TranscriptPanel ────────────────────────────────────────
+// ── TaskQuickAdd ────────────────────────────────────────────
+function TaskQuickAdd({ entityType, entityId, entityName, accentColor, accentText, onAdd, relatedTasks, onToggle, onDelete }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const [date, setDate] = useState("");
+
+  const submit = () => {
+    if (!text.trim()) return;
+    onAdd(entityType, entityId, entityName, text, date);
+    setText(""); setDate(""); setOpen(false);
+  };
+
+  return (
+    <div style={{ marginTop: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <div style={{ fontSize: 10, color: "#666", fontWeight: 700, letterSpacing: 1.5 }}>ЗАДАЧИ ПО ЭТОМУ ЧЕЛОВЕКУ</div>
+        <button className="fbtn" onClick={() => setOpen(!open)}
+          style={{ padding: "5px 12px", background: "#1A1A1A", color: "#666", border: "none", borderRadius: 20, fontFamily: "inherit", fontSize: 11, fontWeight: 700 }}>
+          {open ? "✕" : "+ Задача"}
+        </button>
+      </div>
+
+      {open && (
+        <div style={{ background: "#1A1A1A", borderRadius: 12, padding: 14, marginBottom: 12 }}>
+          <input value={text} onChange={e => setText(e.target.value)} placeholder="Например: написать через неделю"
+            style={{ background: "#0D0D0D", border: "none", borderRadius: 10, color: "#fff", padding: "10px 12px", fontSize: 13, fontFamily: "inherit", width: "100%", outline: "none", marginBottom: 8 }} />
+          <input value={date} onChange={e => setDate(e.target.value)} placeholder="Дата (напр. 24 июн)"
+            style={{ background: "#0D0D0D", border: "none", borderRadius: 10, color: "#fff", padding: "10px 12px", fontSize: 13, fontFamily: "inherit", width: "100%", outline: "none", marginBottom: 10 }} />
+          <button className="fbtn" onClick={submit}
+            style={{ padding: "8px 20px", background: accentColor, color: accentText, border: "none", borderRadius: 20, fontFamily: "inherit", fontSize: 13, fontWeight: 800 }}>
+            Добавить
+          </button>
+        </div>
+      )}
+
+      {relatedTasks.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {relatedTasks.map(task => (
+            <div key={task.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "#1A1A1A", borderRadius: 10, opacity: task.done ? 0.5 : 1 }}>
+              <button onClick={() => onToggle(task.id)} style={{ width: 18, height: 18, borderRadius: 5, flexShrink: 0, border: task.done ? "none" : "1.5px solid #333", background: task.done ? "#00C853" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                {task.done && <span style={{ color: "#000", fontSize: 10, fontWeight: 900 }}>✓</span>}
+              </button>
+              <span style={{ fontSize: 12, color: task.done ? "#555" : "#ccc", textDecoration: task.done ? "line-through" : "none", flex: 1 }}>{task.text}</span>
+              {task.date && <span style={{ fontSize: 11, color: "#666", whiteSpace: "nowrap" }}>{task.date}</span>}
+              <button onClick={() => onDelete(task.id)} style={{ background: "none", border: "none", color: "#444", cursor: "pointer", fontSize: 14 }}>×</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TranscriptPanel({ entity, onUpdate, accentColor, accentText }) {
   const [tab, setTab] = useState("transcript");
   const [question, setQuestion] = useState("");
@@ -234,7 +287,10 @@ export default function CRM() {
     return saved ?? initLeads;
   });
   const [students, setStudents] = useState(() => loadLS("crm_students", initStudents));
+  const [tasks, setTasks] = useState(() => loadLS("crm_tasks", []));
   const [tab, setTab] = useState("leads");
+  const [showAddTask, setShowAddTask] = useState(false);
+  const [newTask, setNewTask] = useState({ text: "", date: "" });
   const [panel, setPanel] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
   const [search, setSearch] = useState("");
@@ -250,6 +306,7 @@ export default function CRM() {
   // auto-save to localStorage
   useEffect(() => { saveLS("crm_leads", leads); }, [leads]);
   useEffect(() => { saveLS("crm_students", students); }, [students]);
+  useEffect(() => { saveLS("crm_tasks", tasks); }, [tasks]);
 
   const openPanel = (type, data) => { setPanel({ type, data }); setNewNote(""); setShowAddSession(false); };
   const closePanel = () => setPanel(null);
@@ -263,6 +320,33 @@ export default function CRM() {
     setStudents(s => s.map(x => x.id === id ? { ...x, ...changes } : x));
     if (panel?.type === "student" && panel.data.id === id) setPanel(p => ({ ...p, data: { ...p.data, ...changes } }));
   };
+
+  // ── tasks ──
+  const addTaskFor = (entityType, entityId, entityName, text, date) => {
+    if (!text.trim()) return;
+    const task = { id: Date.now(), entityType, entityId, entityName, text: text.trim(), date: date || "", done: false, createdAt: Date.now() };
+    setTasks(t => [...t, task]);
+  };
+  const toggleTask = (id) => setTasks(t => t.map(x => x.id === id ? { ...x, done: !x.done } : x));
+  const deleteTask = (id) => setTasks(t => t.filter(x => x.id !== id));
+  const todayStr = () => {
+    const d = new Date(); const M = ["янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"];
+    return `${d.getDate()} ${M[d.getMonth()]}`;
+  };
+  const parseTaskDate = (str) => {
+    const MM = {"янв":0,"фев":1,"мар":2,"апр":3,"май":4,"июн":5,"июл":6,"авг":7,"сен":8,"окт":9,"ноя":10,"дек":11};
+    if (!str) return Infinity;
+    const parts = str.trim().split(" ");
+    if (parts.length < 2) return Infinity;
+    return (MM[parts[1]] ?? 0) * 31 + parseInt(parts[0] || 0);
+  };
+  const sortedTasks = [...tasks].sort((a, b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    return parseTaskDate(a.date) - parseTaskDate(b.date);
+  });
+  const todayNum = parseTaskDate(todayStr());
+  const isOverdue = (str) => !str ? false : parseTaskDate(str) < todayNum;
+  const isToday = (str) => parseTaskDate(str) === todayNum;
 
   const setLeadStatus = (id, status) => {
     const d = new Date(); const M = ["янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"];
@@ -399,7 +483,7 @@ export default function CRM() {
           <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: -0.5, marginTop: 2 }}>CRM</div>
         </div>
         <div style={{ display: "flex", background: "#1A1A1A", borderRadius: 12, padding: 3 }}>
-          {[["leads","Лиды",leads.length],["students","Студенты",students.length]].map(([k,l,c]) => (
+          {[["leads","Лиды",leads.length],["students","Студенты",students.length],["tasks","Задачи",tasks.filter(t => !t.done).length]].map(([k,l,c]) => (
             <button key={k} className="fbtn" onClick={() => { setTab(k); closePanel(); }}
               style={{ padding: "8px 16px", borderRadius: 10, border: "none", fontFamily: "inherit", fontSize: 13, fontWeight: 700,
                 background: tab === k ? "#fff" : "transparent", color: tab === k ? "#000" : "#555" }}>
@@ -408,6 +492,30 @@ export default function CRM() {
           ))}
         </div>
       </div>
+
+      {/* ── TASKS PREVIEW (always visible) ── */}
+      {(() => {
+        const urgent = sortedTasks.filter(t => !t.done && (isOverdue(t.date) || isToday(t.date)));
+        if (urgent.length === 0) return null;
+        return (
+          <div style={{ padding: "16px 20px 0" }}>
+            <div onClick={() => { setTab("tasks"); closePanel(); }} style={{ background: "#1A1408", border: "1px solid #3A2E0A", borderRadius: 14, padding: "14px 16px", cursor: "pointer" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ fontSize: 11, color: "#FFD600", fontWeight: 700, letterSpacing: 1 }}>⚡ СРОЧНЫЕ ЗАДАЧИ</span>
+                <span style={{ fontSize: 11, color: "#776600" }}>{urgent.length} {urgent.length === 1 ? "задача" : "задачи"} →</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                {urgent.slice(0, 3).map(t => (
+                  <div key={t.id} style={{ fontSize: 13, color: "#eee", display: "flex", justifyContent: "space-between", gap: 8 }}>
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.text}{t.entityName ? ` — ${t.entityName}` : ""}</span>
+                    <span style={{ color: isOverdue(t.date) ? "#FF5252" : "#FFD600", fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>{t.date}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       <div style={{ padding: "16px 20px 80px" }}>
 
@@ -429,29 +537,21 @@ export default function CRM() {
               style={{ ...inp, marginBottom: 14 }} />
 
             {/* filters */}
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 10, color: "#444", fontWeight: 700, letterSpacing: 1.5, marginBottom: 7 }}>ОПЫТ</div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
-                <button className="fbtn" onClick={() => setFilterExp("all")} style={{ padding: "6px 14px", borderRadius: 20, border: "none", fontFamily: "inherit", fontSize: 12, fontWeight: 700, background: filterExp === "all" ? "#fff" : "#2D2D2D", color: filterExp === "all" ? "#000" : "#AAA" }}>Все</button>
+            <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+              <select value={filterExp} onChange={e => setFilterExp(e.target.value)}
+                style={{ flex: 1, padding: "9px 12px", borderRadius: 10, background: "#1A1A1A", color: filterExp === "all" ? "#888" : EXP[filterExp].color, border: "none", fontFamily: "inherit", fontSize: 13, fontWeight: 700, outline: "none" }}>
+                <option value="all" style={{ background: "#1A1A1A", color: "#fff" }}>Опыт: все</option>
                 {Object.entries(EXP).map(([key, e]) => (
-                  <button key={key} className="fbtn" onClick={() => setFilterExp(filterExp === key ? "all" : key)}
-                    style={{ padding: "6px 14px", borderRadius: 20, border: "none", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
-                      background: filterExp === key ? e.color : "#2D2D2D", color: filterExp === key ? e.text : "#AAA" }}>
-                    {e.label}
-                  </button>
+                  <option key={key} value={key} style={{ background: "#1A1A1A", color: "#fff" }}>{e.label}</option>
                 ))}
-              </div>
-              <div style={{ fontSize: 10, color: "#444", fontWeight: 700, letterSpacing: 1.5, marginBottom: 7 }}>СТАТУС</div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                <button className="fbtn" onClick={() => setFilterStatus("all")} style={{ padding: "6px 14px", borderRadius: 20, border: "none", fontFamily: "inherit", fontSize: 12, fontWeight: 700, background: filterStatus === "all" ? "#fff" : "#2D2D2D", color: filterStatus === "all" ? "#000" : "#AAA" }}>Все</button>
+              </select>
+              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+                style={{ flex: 1, padding: "9px 12px", borderRadius: 10, background: "#1A1A1A", color: filterStatus === "all" ? "#888" : STATUS[filterStatus].pill, border: "none", fontFamily: "inherit", fontSize: 13, fontWeight: 700, outline: "none" }}>
+                <option value="all" style={{ background: "#1A1A1A", color: "#fff" }}>Статус: все</option>
                 {Object.entries(STATUS).map(([key, s]) => (
-                  <button key={key} className="fbtn" onClick={() => setFilterStatus(filterStatus === key ? "all" : key)}
-                    style={{ padding: "6px 14px", borderRadius: 20, border: "none", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
-                      background: filterStatus === key ? s.pill : "#2D2D2D", color: filterStatus === key ? s.pillText : "#AAA" }}>
-                    {s.label}
-                  </button>
+                  <option key={key} value={key} style={{ background: "#1A1A1A", color: "#fff" }}>{s.label}</option>
                 ))}
-              </div>
+              </select>
             </div>
 
             {/* sort + add */}
@@ -554,6 +654,68 @@ export default function CRM() {
             })}
           </div>
         )}
+
+        {/* ── TASKS ── */}
+        {tab === "tasks" && (
+          <div>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 14 }}>
+              <button className="fbtn" onClick={() => setShowAddTask(!showAddTask)}
+                style={{ padding: "8px 20px", background: showAddTask ? "#fff" : "#1A1A1A", color: showAddTask ? "#000" : "#666", border: "none", borderRadius: 20, fontFamily: "inherit", fontSize: 13, fontWeight: 700 }}>
+                {showAddTask ? "✕ Закрыть" : "+ Добавить задачу"}
+              </button>
+            </div>
+
+            {showAddTask && (
+              <div style={{ background: "#141414", borderRadius: 16, padding: 18, marginBottom: 16 }}>
+                <input placeholder="Что нужно сделать..." value={newTask.text} onChange={e => setNewTask({ ...newTask, text: e.target.value })}
+                  style={{ ...inp, marginBottom: 8 }} />
+                <input placeholder="Дата (напр. 24 июн)" value={newTask.date} onChange={e => setNewTask({ ...newTask, date: e.target.value })}
+                  style={{ ...inp, marginBottom: 12 }} />
+                <button className="fbtn" onClick={() => { addTaskFor("general", null, "", newTask.text, newTask.date); setNewTask({ text: "", date: "" }); setShowAddTask(false); }}
+                  style={{ padding: "10px 24px", background: "#fff", color: "#000", border: "none", borderRadius: 20, fontFamily: "inherit", fontSize: 13, fontWeight: 700 }}>
+                  Добавить
+                </button>
+              </div>
+            )}
+
+            {sortedTasks.length === 0 && (
+              <div style={{ textAlign: "center", color: "#333", padding: "50px 0", fontSize: 14 }}>Нет задач. Самое время отдохнуть 🙂</div>
+            )}
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+              {sortedTasks.map(task => {
+                const overdue = !task.done && isOverdue(task.date);
+                const today = !task.done && isToday(task.date);
+                return (
+                  <div key={task.id} style={{
+                    display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", borderRadius: 14,
+                    background: task.done ? "#101010" : overdue ? "#2A1414" : today ? "#1A1A0A" : "#141414",
+                    opacity: task.done ? 0.5 : 1,
+                  }}>
+                    <button onClick={() => toggleTask(task.id)}
+                      style={{ width: 22, height: 22, borderRadius: 6, flexShrink: 0, border: task.done ? "none" : "1.5px solid #333", background: task.done ? "#00C853" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                      {task.done && <span style={{ color: "#000", fontSize: 12, fontWeight: 900 }}>✓</span>}
+                    </button>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, color: task.done ? "#555" : "#eee", textDecoration: task.done ? "line-through" : "none" }}>{task.text}</div>
+                      {task.entityName && (
+                        <div style={{ fontSize: 11, color: "#555", marginTop: 2 }}>→ {task.entityName}</div>
+                      )}
+                    </div>
+                    {task.date && (
+                      <div style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 20, whiteSpace: "nowrap", flexShrink: 0,
+                        background: overdue ? "#FF5252" : today ? "#FFD600" : "#222",
+                        color: overdue ? "#fff" : today ? "#000" : "#888" }}>
+                        {overdue ? "просрочено · " : ""}{task.date}
+                      </div>
+                    )}
+                    <button onClick={() => deleteTask(task.id)} style={{ background: "none", border: "none", color: "#444", cursor: "pointer", fontSize: 16, flexShrink: 0, padding: "0 4px" }}>×</button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── BOTTOM SHEET ── */}
@@ -578,11 +740,11 @@ export default function CRM() {
                     <button className="fbtn" onClick={closePanel} style={{ background: "#222", border: "none", color: "#888", width: 32, height: 32, borderRadius: 8, fontSize: 16, flexShrink: 0 }}>×</button>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-                    <span style={{ fontSize: 13, color: "#555" }}>{lead.phone}</span>
-                    <span style={{ fontSize: 13, color: "#333" }}>·</span>
-                    <span style={{ fontSize: 13, color: "#555" }}>{lead.source}</span>
-                    <span style={{ fontSize: 13, color: "#333" }}>·</span>
-                    <span style={{ fontSize: 13, color: "#555" }}>{lead.date}</span>
+                    <span style={{ fontSize: 13, color: "#999" }}>{lead.phone}</span>
+                    <span style={{ fontSize: 13, color: "#444" }}>·</span>
+                    <span style={{ fontSize: 13, color: "#999" }}>{lead.source}</span>
+                    <span style={{ fontSize: 13, color: "#444" }}>·</span>
+                    <span style={{ fontSize: 13, color: "#999" }}>{lead.date}</span>
                     {lead.vk && (
                       <a href={lead.vk.startsWith("http") ? lead.vk : "https://" + lead.vk} target="_blank" rel="noreferrer"
                         style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 12px", borderRadius: 20, background: "#1A6FD420", border: "1px solid #1A6FD440", color: "#5BB8FF", fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
@@ -608,29 +770,29 @@ export default function CRM() {
                   </div>
 
                   {/* note */}
-                  <div style={{ fontSize: 10, color: "#444", fontWeight: 700, letterSpacing: 1.5, marginBottom: 6 }}>ЗАМЕТКА</div>
-                  <div style={{ fontSize: 13, lineHeight: 1.65, color: "#aaa", marginBottom: 18, padding: "12px 14px", background: "#1A1A1A", borderRadius: 10 }}>{lead.note}</div>
+                  <div style={{ fontSize: 10, color: "#666", fontWeight: 700, letterSpacing: 1.5, marginBottom: 6 }}>ЗАМЕТКА</div>
+                  <div style={{ fontSize: 13, lineHeight: 1.65, color: "#ddd", marginBottom: 18, padding: "12px 14px", background: "#1A1A1A", borderRadius: 10 }}>{lead.note}</div>
 
                   {/* next action */}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 }}>
                     <div>
-                      <div style={{ fontSize: 10, color: "#444", fontWeight: 700, letterSpacing: 1.5, marginBottom: 6 }}>СЛЕДУЮЩИЙ ШАГ</div>
+                      <div style={{ fontSize: 10, color: "#666", fontWeight: 700, letterSpacing: 1.5, marginBottom: 6 }}>СЛЕДУЮЩИЙ ШАГ</div>
                       <input value={lead.nextAction} onChange={ev => updateLead(lead.id, { nextAction: ev.target.value })}
                         placeholder="напр. 10 июн" style={{ ...inp, fontSize: 12, padding: "9px 12px" }} />
                     </div>
                     <div>
-                      <div style={{ fontSize: 10, color: "#444", fontWeight: 700, letterSpacing: 1.5, marginBottom: 6 }}>ИСТОЧНИК</div>
-                      <div style={{ padding: "9px 12px", background: "#1A1A1A", borderRadius: 10, fontSize: 12, color: "#aaa" }}>{lead.source}</div>
+                      <div style={{ fontSize: 10, color: "#666", fontWeight: 700, letterSpacing: 1.5, marginBottom: 6 }}>ИСТОЧНИК</div>
+                      <div style={{ padding: "9px 12px", background: "#1A1A1A", borderRadius: 10, fontSize: 12, color: "#ddd" }}>{lead.source}</div>
                     </div>
                   </div>
 
 
 
                   {/* history */}
-                  <div style={{ fontSize: 10, color: "#444", fontWeight: 700, letterSpacing: 1.5, marginBottom: 8 }}>ИСТОРИЯ</div>
+                  <div style={{ fontSize: 10, color: "#666", fontWeight: 700, letterSpacing: 1.5, marginBottom: 8 }}>ИСТОРИЯ</div>
                   <div style={{ background: "#111", borderRadius: 10, padding: "10px 14px", marginBottom: 10, maxHeight: 120, overflowY: "auto" }}>
                     {(lead.history || []).map((h, i) => (
-                      <div key={i} style={{ fontSize: 12, color: "#555", padding: "3px 0", borderBottom: i < lead.history.length - 1 ? "1px solid #1A1A1A" : "none" }}>{h}</div>
+                      <div key={i} style={{ fontSize: 12, color: "#999", padding: "3px 0", borderBottom: i < lead.history.length - 1 ? "1px solid #1A1A1A" : "none" }}>{h}</div>
                     ))}
                   </div>
                   <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
@@ -639,8 +801,16 @@ export default function CRM() {
                     <button className="fbtn" onClick={() => addCallNote(lead.id)} style={{ padding: "0 14px", background: "#fff", color: "#000", border: "none", borderRadius: 10, fontWeight: 800, fontSize: 14 }}>+</button>
                   </div>
 
+                  <TaskQuickAdd
+                    entityType="lead" entityId={lead.id} entityName={lead.name}
+                    accentColor={e.color} accentText={e.text}
+                    onAdd={addTaskFor}
+                    relatedTasks={tasks.filter(t => t.entityType === "lead" && t.entityId === lead.id)}
+                    onToggle={toggleTask} onDelete={deleteTask}
+                  />
+
                   {/* transcript */}
-                  <div style={{ fontSize: 10, color: "#444", fontWeight: 700, letterSpacing: 1.5, marginBottom: 4 }}>ТРАНСКРИПТ СОЗВОНА / AI-АНАЛИЗ</div>
+                  <div style={{ fontSize: 10, color: "#666", fontWeight: 700, letterSpacing: 1.5, marginBottom: 4, marginTop: 20 }}>ТРАНСКРИПТ СОЗВОНА / AI-АНАЛИЗ</div>
                   <TranscriptPanel
                     entity={lead}
                     onUpdate={(changes) => updateLead(lead.id, changes)}
@@ -675,7 +845,7 @@ export default function CRM() {
                     <div style={{ width: 46, height: 46, borderRadius: "50%", background: `${e.color}22`, border: `2px solid ${e.color}60`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 900, color: e.color, flexShrink: 0 }}>{s.avatar}</div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 900, fontSize: 19 }}>{s.name}</div>
-                      <div style={{ fontSize: 12, color: "#555", marginTop: 2 }}>с {s.since} · {s.sessions} сессий</div>
+                      <div style={{ fontSize: 12, color: "#999", marginTop: 2 }}>с {s.since} · {s.sessions} сессий</div>
                     </div>
                     <button className="fbtn" onClick={closePanel} style={{ background: "#222", border: "none", color: "#888", width: 32, height: 32, borderRadius: 8, fontSize: 16, flexShrink: 0 }}>×</button>
                   </div>
@@ -683,11 +853,11 @@ export default function CRM() {
                   {/* next session + progress */}
                   <div style={{ background: "#1A1A1A", borderRadius: 12, padding: "12px 16px", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div>
-                      <div style={{ fontSize: 10, color: "#444", fontWeight: 700 }}>СЛЕДУЮЩИЙ СОЗВОН</div>
+                      <div style={{ fontSize: 10, color: "#666", fontWeight: 700 }}>СЛЕДУЮЩИЙ СОЗВОН</div>
                       <div style={{ fontSize: 15, fontWeight: 800, color: e.color, marginTop: 3 }}>{s.nextSession}</div>
                     </div>
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: 10, color: "#444", fontWeight: 700 }}>ДЗ ВЫПОЛНЕНО</div>
+                      <div style={{ fontSize: 10, color: "#666", fontWeight: 700 }}>ДЗ ВЫПОЛНЕНО</div>
                       <div style={{ fontSize: 22, fontWeight: 900, color: e.color, marginTop: 2 }}>{prog}%</div>
                     </div>
                   </div>
@@ -696,23 +866,23 @@ export default function CRM() {
                   </div>
 
                   {/* homework */}
-                  <div style={{ fontSize: 10, color: "#444", fontWeight: 700, letterSpacing: 1.5, marginBottom: 10 }}>ДОМАШНИЕ ЗАДАНИЯ</div>
+                  <div style={{ fontSize: 10, color: "#666", fontWeight: 700, letterSpacing: 1.5, marginBottom: 10 }}>ДОМАШНИЕ ЗАДАНИЯ</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
                     {s.homework.map((hw, i) => (
                       <div key={i} onClick={() => toggleHomework(s.id, i)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#1A1A1A", borderRadius: 10, cursor: "pointer" }}>
                         <div style={{ width: 20, height: 20, borderRadius: 6, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: hw.done ? e.color : "#2A2A2A" }}>
                           {hw.done && <span style={{ color: e.text, fontSize: 11, fontWeight: 900 }}>✓</span>}
                         </div>
-                        <span style={{ fontSize: 13, color: hw.done ? "#444" : "#ccc", textDecoration: hw.done ? "line-through" : "none" }}>{hw.text}</span>
+                        <span style={{ fontSize: 13, color: hw.done ? "#666" : "#eee", textDecoration: hw.done ? "line-through" : "none" }}>{hw.text}</span>
                       </div>
                     ))}
                   </div>
 
                   {/* session notes */}
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                    <div style={{ fontSize: 10, color: "#444", fontWeight: 700, letterSpacing: 1.5 }}>ИТОГИ СЕССИЙ</div>
+                    <div style={{ fontSize: 10, color: "#666", fontWeight: 700, letterSpacing: 1.5 }}>ИТОГИ СЕССИЙ</div>
                     <button className="fbtn" onClick={() => setShowAddSession(!showAddSession)}
-                      style={{ padding: "5px 12px", background: "#1A1A1A", color: "#666", border: "none", borderRadius: 20, fontFamily: "inherit", fontSize: 11, fontWeight: 700 }}>
+                      style={{ padding: "5px 12px", background: "#1A1A1A", color: "#888", border: "none", borderRadius: 20, fontFamily: "inherit", fontSize: 11, fontWeight: 700 }}>
                       {showAddSession ? "✕" : "+ Добавить"}
                     </button>
                   </div>
@@ -729,13 +899,13 @@ export default function CRM() {
                     {(s.sessionNotes || []).map((n, i) => (
                       <div key={i} style={{ background: "#1A1A1A", borderRadius: 10, padding: "10px 14px" }}>
                         <div style={{ fontSize: 10, color: e.color, fontWeight: 700, marginBottom: 4 }}>{n.date}</div>
-                        <div style={{ fontSize: 13, color: "#aaa", lineHeight: 1.6 }}>{n.summary}</div>
+                        <div style={{ fontSize: 13, color: "#ddd", lineHeight: 1.6 }}>{n.summary}</div>
                       </div>
                     ))}
                   </div>
 
                   {/* next topics */}
-                  <div style={{ fontSize: 10, color: "#444", fontWeight: 700, letterSpacing: 1.5, marginBottom: 10 }}>СЛЕДУЮЩИЕ ТЕМЫ</div>
+                  <div style={{ fontSize: 10, color: "#666", fontWeight: 700, letterSpacing: 1.5, marginBottom: 10 }}>СЛЕДУЮЩИЕ ТЕМЫ</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 20 }}>
                     {s.nextTopics.map((t, i) => (
                       <div key={i} style={{ fontSize: 13, color: "#aaa", padding: "10px 14px", background: "#1A1A1A", borderRadius: 10, display: "flex", gap: 8 }}>
@@ -744,8 +914,16 @@ export default function CRM() {
                     ))}
                   </div>
 
+                  <TaskQuickAdd
+                    entityType="student" entityId={s.id} entityName={s.name}
+                    accentColor={e.color} accentText={e.text}
+                    onAdd={addTaskFor}
+                    relatedTasks={tasks.filter(t => t.entityType === "student" && t.entityId === s.id)}
+                    onToggle={toggleTask} onDelete={deleteTask}
+                  />
+
                   {/* transcript */}
-                  <div style={{ fontSize: 10, color: "#444", fontWeight: 700, letterSpacing: 1.5, marginBottom: 4 }}>ТРАНСКРИПТ СЕССИИ / AI-АНАЛИЗ</div>
+                  <div style={{ fontSize: 10, color: "#666", fontWeight: 700, letterSpacing: 1.5, marginBottom: 4, marginTop: 20 }}>ТРАНСКРИПТ СЕССИИ / AI-АНАЛИЗ</div>
                   <TranscriptPanel
                     entity={s}
                     onUpdate={(changes) => updateStudent(s.id, changes)}
