@@ -95,6 +95,10 @@
   .icon-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .rate-line { display: flex; align-items: center; gap: 8px; }
   .rate-line span { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .rate-line span:first-child { min-width: 5.6em; }
+  .rate-line i { font-style: normal; }
+  .settings .field + .field { border-top: 1px solid var(--line); padding-top: 12px; }
+  .settings input::placeholder { color: var(--muted); opacity: 0.6; font-weight: 400; }
   .actions { display: flex; gap: 8px; }
   .actions button {
     flex: 1; font: inherit; font-weight: 600; border-radius: 10px; padding: 12px 16px; cursor: pointer;
@@ -111,6 +115,8 @@
   }
   .row.active { border-color: var(--accent); background: var(--surface-2); }
   .flag { font-size: 30px; line-height: 1; flex: none; width: 36px; text-align: center; }
+  .card-row { cursor: default; background: transparent; border: 1px dashed var(--line); }
+  .card-ico svg { width: 30px; height: 30px; stroke: var(--accent); fill: none; stroke-width: 1.6; stroke-linecap: round; display: block; margin: 0 auto; }
   .code { font-weight: 600; font-size: 1.05rem; flex: none; }
   .code small { display: block; color: var(--muted); font-weight: 400; font-size: 0.78rem; margin-top: 2px; white-space: nowrap; }
   .value {
@@ -179,9 +185,17 @@
       </div>
     </div>
     <div class="field">
-      <label for="rateAB">Курс, по которому вы меняли. Заполните любое из двух полей.</label>
-      <div class="rate-line"><span id="labelAB">1 THB =</span><input id="rateAB" type="text" inputmode="decimal" autocomplete="off"><span id="unitAB">RUB</span></div>
-      <div class="rate-line"><span id="labelBA">1 RUB =</span><input id="rateBA" type="text" inputmode="decimal" autocomplete="off" aria-label="Обратный курс"><span id="unitBA">THB</span></div>
+      <label for="rateAB">Наличными: курс, по которому вы меняли. Заполните любое из двух полей.</label>
+      <div class="rate-line"><span>1 <i class="cA">THB</i> =</span><input id="rateAB" type="text" inputmode="decimal" autocomplete="off"><span class="cB">RUB</span></div>
+      <div class="rate-line"><span>1 <i class="cB">RUB</i> =</span><input id="rateBA" type="text" inputmode="decimal" autocomplete="off" aria-label="Обратный курс наличными"><span class="cA">THB</span></div>
+    </div>
+    <div class="field">
+      <label for="cardAB">Картой: сколько на самом деле списывается. Если картой не платите, оставьте пустым.</label>
+      <div class="rate-line"><span>1 <i class="cA">THB</i> =</span><input id="cardAB" type="text" inputmode="decimal" autocomplete="off"><span class="cB">RUB</span></div>
+      <div class="rate-line"><span>1 <i class="cB">RUB</i> =</span><input id="cardBA" type="text" inputmode="decimal" autocomplete="off" aria-label="Обратный курс картой"><span class="cA">THB</span></div>
+      <p class="note">Или посчитайте по выписке: сколько заплатили и сколько списалось с карты.</p>
+      <div class="rate-line"><span>Заплатили</span><input id="chkA" type="text" inputmode="decimal" autocomplete="off" placeholder="1000" aria-label="Сумма покупки"><span class="cA">THB</span></div>
+      <div class="rate-line"><span>Списалось</span><input id="chkB" type="text" inputmode="decimal" autocomplete="off" placeholder="2950" aria-label="Сколько списалось с карты"><span class="cB">RUB</span></div>
     </div>
     <p class="note" id="rateNote"></p>
     <div class="actions">
@@ -201,6 +215,11 @@
       <span class="code"><span id="code-b"></span><small id="name-b"></small></span>
       <span class="value"><span class="expr" id="expr-b"></span><span class="num" id="val-b">0</span></span>
     </button>
+    <div class="row card-row" id="row-card" hidden>
+      <span class="flag card-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="2.5" y="5.5" width="19" height="13" rx="2.5"/><path d="M2.5 10h19M6 15h4"/></svg></span>
+      <span class="code">Картой<small id="name-card"></small></span>
+      <span class="value"><span class="expr" id="expr-card"></span><span class="num" id="val-card">0</span></span>
+    </div>
   </div>
 
   <div class="quick" id="quick" aria-label="Быстрые цены"></div>
@@ -268,11 +287,11 @@
   };
   var QUICK_STEPS = [1, 2.5, 5, 10, 25, 50, 100];
 
-  // cfg.rate = how many units of B one unit of A costs
-  var cfg = { a: "THB", b: "RUB", rate: 2.78 };
+  // cfg.rate = how many units of B one unit of A costs in cash; cfg.card = the same when paying by card (0 = not used)
+  var cfg = { a: "THB", b: "RUB", rate: 2.78, card: 0 };
   try {
     var savedCfg = JSON.parse(localStorage.getItem("fxCfg") || "null");
-    if (savedCfg && CURRENCIES[savedCfg.a] && CURRENCIES[savedCfg.b] && savedCfg.rate > 0) cfg = savedCfg;
+    if (savedCfg && CURRENCIES[savedCfg.a] && CURRENCIES[savedCfg.b] && savedCfg.rate > 0) { cfg = savedCfg; cfg.card = cfg.card > 0 ? cfg.card : 0; }
     else {
       var oldRate = parseFloat(localStorage.getItem("thbRubRate"));   // rate saved by the first version
       if (oldRate > 0) cfg.rate = oldRate;
@@ -338,6 +357,11 @@
       $("code-" + side).textContent = cfg[side];
       $("name-" + side).textContent = c[1] + " " + c[2];
     });
+    if (cfg.card) {
+      $("name-b").textContent = "Наличными " + cur("b")[2];
+      $("name-card").textContent = cfg.b + " " + cur("b")[2];
+    }
+    $("row-card").hidden = !cfg.card;
     $("title").textContent = cur("a")[1] + " ⇄ " + cur("b")[1];
     // show the direction where the number is at least 1, e.g. "1 ₽ = 278 ₫" rather than "1 ₫ = 0,0036 ₽"
     var symA = cur("a")[2], symB = cur("b")[2];
@@ -357,6 +381,14 @@
     $("expr-" + active).textContent = hasOp(input) ? prettyExpr(input) : "";
     $("val-" + other).textContent = fmtMoney(convert(amount, active));
     $("expr-" + other).textContent = "";
+
+    if (cfg.card) {
+      // the same purchase paid by card, in the home currency
+      var local = active === "a" ? amount : amount / cfg.rate;
+      $("val-card").textContent = fmtMoney(local * cfg.card);
+      var diff = Math.round((cfg.card / cfg.rate - 1) * 100);
+      $("expr-card").textContent = diff > 0 ? "дороже на " + diff + " %" : diff < 0 ? "дешевле на " + -diff + " %" : "так же";
+    }
 
     renderCurrencies();
     renderQuick();
@@ -450,27 +482,60 @@
     });
   });
 
+  // Two linked fields "1 A = ? B" and "1 B = ? A": typing one fills in the other.
+  function ratePair(inAB, inBA, onChange) {
+    var exact = 0;   // rate set from a full-precision number, kept until the user types
+    inAB.addEventListener("input", function () {
+      var r = parseNum(inAB.value); exact = 0;
+      inBA.value = r > 0 ? fmtRate(1 / r).replace(/\s/g, "") : "";
+      onChange();
+    });
+    inBA.addEventListener("input", function () {
+      var r = parseNum(inBA.value); exact = r > 0 ? 1 / r : 0;
+      inAB.value = r > 0 ? fmtRate(1 / r).replace(/\s/g, "") : "";
+      onChange();
+    });
+    return {
+      get: function () { return exact || parseNum(inAB.value); },
+      empty: function () { return !inAB.value.trim() && !inBA.value.trim(); },
+      set: function (r) {
+        exact = r || 0;
+        inAB.value = r ? fmtRate(r).replace(/\s/g, "") : "";
+        inBA.value = r ? fmtRate(1 / r).replace(/\s/g, "") : "";
+      },
+      flip: function () { var r = this.get(); this.set(r > 0 ? 1 / r : 0); }
+    };
+  }
+  var cashPair = ratePair(inAB, inBA, draftCheck);
+  var cardPair = ratePair($("cardAB"), $("cardBA"), draftCheck);
+  var chkA = $("chkA"), chkB = $("chkB");
+  function fromReceipt() {
+    var paid = parseNum(chkA.value), charged = parseNum(chkB.value);
+    if (paid > 0 && charged > 0) { cardPair.set(charged / paid); draftCheck(); }
+  }
+  chkA.addEventListener("input", fromReceipt);
+  chkB.addEventListener("input", fromReceipt);
+
   function draftLabels() {
-    var a = selA.value, b = selB.value;
-    $("labelAB").textContent = "1 " + a + " =";
-    $("unitAB").textContent = b;
-    $("labelBA").textContent = "1 " + b + " =";
-    $("unitBA").textContent = a;
+    document.querySelectorAll("#settings .cA").forEach(function (el) { el.textContent = selA.value; });
+    document.querySelectorAll("#settings .cB").forEach(function (el) { el.textContent = selB.value; });
   }
   function draftCheck() {
-    var r = typedReverse ? 1 / parseNum(inBA.value) : parseNum(inAB.value);
+    var r = cashPair.get(), c = cardPair.get();
     var same = selA.value === selB.value;
+    var cardOk = cardPair.empty() || c > 0;
     var sample = CURRENCIES[selA.value][4] * 5;
-    $("save").disabled = !(r > 0) || same;
+    $("save").disabled = !(r > 0) || same || !cardOk;
     $("rateNote").textContent = same ? "Выберите две разные валюты."
-      : r > 0 ? "Например, " + fmt(sample, 2) + " " + selA.value + " = " + fmtMoney(sample * r) + " " + selB.value + "."
-      : "Впишите курс, чтобы сохранить.";
+      : !(r > 0) ? "Впишите курс наличными, чтобы сохранить."
+      : !cardOk ? "Курс картой должен быть числом, или оставьте его пустым."
+      : "Например, " + fmt(sample, 2) + " " + selA.value + " = " + fmtMoney(sample * r) + " " + selB.value
+        + (c > 0 ? " наличными и " + fmtMoney(sample * c) + " " + selB.value + " картой." : ".");
   }
   function openSettings() {
     selA.value = cfg.a; selB.value = cfg.b;
-    inAB.value = fmtRate(cfg.rate).replace(/\s/g, "");
-    inBA.value = fmtRate(1 / cfg.rate).replace(/\s/g, "");
-    typedReverse = false;
+    cashPair.set(cfg.rate); cardPair.set(cfg.card);
+    chkA.value = ""; chkB.value = "";
     draftLabels(); draftCheck();
     settings.hidden = false;
     $("app").classList.add("editing");
@@ -482,45 +547,31 @@
   $("rateChip").addEventListener("click", function () { settings.hidden ? openSettings() : closeSettings(); });
   $("cancel").addEventListener("click", closeSettings);
 
-  // The two rate fields mirror each other: typing one fills in the other.
-  var typedReverse = false;   // the rate was typed as "1 B = ? A", keep its exact value
-  inAB.addEventListener("input", function () {
-    typedReverse = false;
-    var r = parseNum(inAB.value);
-    inBA.value = r > 0 ? fmtRate(1 / r).replace(/\s/g, "") : "";
-    draftCheck();
-  });
-  inBA.addEventListener("input", function () {
-    typedReverse = true;
-    var r = parseNum(inBA.value);
-    inAB.value = r > 0 ? fmtRate(1 / r).replace(/\s/g, "") : "";
-    draftCheck();
-  });
   function onCurrencyChange() {
-    // a new pair needs a new rate, unless it is the saved pair or the saved pair flipped
+    // a new pair needs new rates, unless it is the saved pair or the saved pair flipped
     var a = selA.value, b = selB.value;
-    var r = a === cfg.a && b === cfg.b ? cfg.rate : a === cfg.b && b === cfg.a ? 1 / cfg.rate : 0;
-    inAB.value = r ? fmtRate(r).replace(/\s/g, "") : "";
-    inBA.value = r ? fmtRate(1 / r).replace(/\s/g, "") : "";
-    typedReverse = false;
+    var same = a === cfg.a && b === cfg.b, flipped = a === cfg.b && b === cfg.a;
+    cashPair.set(same ? cfg.rate : flipped ? 1 / cfg.rate : 0);
+    cardPair.set(cfg.card && (same || flipped) ? (same ? cfg.card : 1 / cfg.card) : 0);
+    chkA.value = ""; chkB.value = "";
     draftLabels(); draftCheck();
-    if (!r) inAB.focus();
+    if (!same && !flipped) inAB.focus();
   }
   selA.addEventListener("change", onCurrencyChange);
   selB.addEventListener("change", onCurrencyChange);
   $("swapCur").addEventListener("click", function () {
     var a = selA.value; selA.value = selB.value; selB.value = a;
-    var ab = inAB.value; inAB.value = inBA.value; inBA.value = ab;
-    typedReverse = !typedReverse;
+    cashPair.flip(); cardPair.flip();
+    var ca = chkA.value; chkA.value = chkB.value; chkB.value = ca;
     draftLabels(); draftCheck();
   });
 
   settings.addEventListener("submit", function (e) {
     e.preventDefault();
-    var r = typedReverse ? 1 / parseNum(inBA.value) : parseNum(inAB.value);
-    if (!(r > 0) || selA.value === selB.value) return;
+    var r = cashPair.get(), c = cardPair.get();
+    if (!(r > 0) || selA.value === selB.value || !(cardPair.empty() || c > 0)) return;
     var changed = selA.value !== cfg.a || selB.value !== cfg.b;
-    cfg = { a: selA.value, b: selB.value, rate: r };
+    cfg = { a: selA.value, b: selB.value, rate: r, card: c > 0 ? c : 0 };
     saveCfg();
     if (changed) { input = String(cur(active)[4] * 5); fresh = true; }
     closeSettings();
