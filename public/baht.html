@@ -463,7 +463,7 @@
     render();
   }
 
-  document.querySelectorAll(".row").forEach(function (row) {
+  document.querySelectorAll(".row[data-side]").forEach(function (row) {
     row.addEventListener("click", function () { switchTo(row.dataset.side); });
   });
   $("pad").addEventListener("click", function (e) {
