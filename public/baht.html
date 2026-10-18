@@ -502,6 +502,7 @@
     var r = a === cfg.a && b === cfg.b ? cfg.rate : a === cfg.b && b === cfg.a ? 1 / cfg.rate : 0;
     inAB.value = r ? fmtRate(r).replace(/\s/g, "") : "";
     inBA.value = r ? fmtRate(1 / r).replace(/\s/g, "") : "";
+    typedReverse = false;
     draftLabels(); draftCheck();
     if (!r) inAB.focus();
   }
