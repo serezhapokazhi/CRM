@@ -6,8 +6,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>*{box-sizing:border-box}:root{padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
-<title>Бат в рубли</title>
-<meta name="apple-mobile-web-app-title" content="Бат ⇄ ₽">
+<title>Свой курс</title>
+<meta name="apple-mobile-web-app-title" content="Свой курс">
 <meta name="theme-color" content="#0f1424">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -45,6 +45,7 @@
   }
 
   html, body { height: 100%; }
+  html { background: var(--bg); }
   body {
     background: var(--bg); color: var(--fg);
     font-family: var(--font-body); font-size: 15px;
@@ -61,43 +62,55 @@
   }
 
   header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  h1 { font-family: var(--font-display); font-weight: 600; font-size: 1.15rem; margin: 0; letter-spacing: 0.01em; }
+  h1 { font-family: var(--font-display); font-weight: 600; font-size: 1.05rem; margin: 0; letter-spacing: 0.01em; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .rate-chip {
-    font: inherit; font-weight: 500; color: var(--fg); cursor: pointer;
+    font: inherit; font-weight: 500; color: var(--fg); cursor: pointer; flex: none;
     background: var(--surface); border: 1px solid var(--line); border-radius: 999px;
-    padding: 8px 14px; display: flex; align-items: center; gap: 8px;
-    font-variant-numeric: tabular-nums;
+    padding: 8px 14px; display: flex; align-items: center; gap: 6px;
+    font-variant-numeric: tabular-nums; white-space: nowrap;
   }
   .rate-chip b { color: var(--accent); font-weight: 600; }
-  .rate-chip svg { width: 14px; height: 14px; stroke: var(--muted); }
+  .rate-chip svg { width: 14px; height: 14px; stroke: var(--muted); margin-left: 2px; }
 
-  .rate-panel {
+  .settings {
     background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
-    padding: 14px; display: grid; gap: 10px;
+    padding: 14px; display: grid; gap: 12px;
   }
-  .rate-panel label { color: var(--muted); font-size: 0.85rem; }
-  .rate-row { display: flex; gap: 8px; align-items: center; }
-  .rate-row span { color: var(--muted); white-space: nowrap; }
-  .rate-row input {
-    flex: 1; min-width: 0; font: inherit; font-size: 1.3rem; font-weight: 600;
-    background: var(--surface-2); color: var(--fg); border: 1px solid var(--line);
-    border-radius: 10px; padding: 8px 12px; font-variant-numeric: tabular-nums;
-    user-select: text; -webkit-user-select: text;
+  .settings h2 { font-size: 0.95rem; font-weight: 600; margin: 0; }
+  .field { display: grid; gap: 6px; }
+  .field label, .settings .note { color: var(--muted); font-size: 0.82rem; line-height: 1.4; margin: 0; }
+  .pair { display: grid; gap: 6px; }
+  .pair .icon-btn { justify-self: center; height: 36px; }
+  .settings select, .settings input {
+    width: 100%; min-width: 0; font: inherit; font-size: 1rem; color: var(--fg);
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 10px; user-select: text; -webkit-user-select: text;
   }
-  .rate-row button {
-    font: inherit; font-weight: 600; background: var(--accent); color: var(--accent-ink);
-    border: 0; border-radius: 10px; padding: 11px 16px; cursor: pointer;
+  .settings input { font-size: 1.15rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .icon-btn {
+    font: inherit; color: var(--accent); background: var(--surface-2); cursor: pointer;
+    border: 1px solid var(--line); border-radius: 10px; width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
   }
-  .rate-hint { color: var(--muted); font-size: 0.8rem; line-height: 1.4; margin: 0; }
+  .icon-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .rate-line { display: flex; align-items: center; gap: 8px; }
+  .rate-line span { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .actions { display: flex; gap: 8px; }
+  .actions button {
+    flex: 1; font: inherit; font-weight: 600; border-radius: 10px; padding: 12px 16px; cursor: pointer;
+  }
+  .btn-primary { background: var(--accent); color: var(--accent-ink); border: 0; }
+  .btn-primary:disabled { opacity: 0.45; cursor: default; }
+  .btn-ghost { background: transparent; color: var(--fg); border: 1px solid var(--line); }
 
   .rows { display: grid; gap: 8px; }
   .row {
-    display: flex; align-items: center; gap: 14px; cursor: pointer;
+    display: flex; align-items: center; gap: 12px; cursor: pointer;
     background: var(--surface); border: 1px solid transparent; border-radius: 18px;
     padding: 14px 16px; text-align: left; font: inherit; color: inherit; width: 100%;
   }
   .row.active { border-color: var(--accent); background: var(--surface-2); }
-  .flag { width: 40px; height: 28px; border-radius: 5px; flex: none; overflow: hidden; }
+  .flag { font-size: 30px; line-height: 1; flex: none; width: 36px; text-align: center; }
   .code { font-weight: 600; font-size: 1.05rem; flex: none; }
   .code small { display: block; color: var(--muted); font-weight: 400; font-size: 0.78rem; margin-top: 2px; white-space: nowrap; }
   .value {
@@ -132,45 +145,61 @@
     height: clamp(54px, 9.5vh, 72px); touch-action: manipulation;
     display: flex; align-items: center; justify-content: center;
   }
-  .pad button:active, .pad button.pressed { background: var(--key-press); }
+  .pad button:active { background: var(--key-press); }
   .pad .op { color: var(--accent); font-size: 1.4rem; }
   .pad .clear { font-size: 1rem; font-weight: 600; background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
   .pad .clear:active { background: var(--accent); opacity: 0.8; }
   .pad svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
-  button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .app.editing .quick, .app.editing .pad { display: none; }
+
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 </style>
 
-<div class="app">
+<div class="app" id="app">
   <header>
-    <h1>Бат ⇄ Рубль</h1>
-    <button class="rate-chip" id="rateChip" type="button" aria-label="Изменить курс">
-      1 ฿ = <b id="rateLabel">2,78</b> ₽
+    <h1 id="title">Бат ⇄ Рубль</h1>
+    <button class="rate-chip" id="rateChip" type="button" aria-label="Настроить валюты и курс">
+      <span id="rateLabel">1 ฿ = <b>2,78</b> ₽</span>
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>
     </button>
   </header>
 
-  <form class="rate-panel" id="ratePanel" hidden>
-    <label for="rateInput">Курс, по которому вы меняли: сколько рублей стоит 1 бат</label>
-    <div class="rate-row">
-      <span>1 ฿ =</span>
-      <input id="rateInput" type="text" inputmode="decimal" autocomplete="off">
-      <span>₽</span>
-      <button type="submit">Сохранить</button>
+  <form class="settings" id="settings" hidden>
+    <h2>Валюты и курс</h2>
+    <div class="pair">
+      <div class="field">
+        <label for="curA">Местная валюта</label>
+        <select id="curA"></select>
+      </div>
+      <button class="icon-btn" id="swapCur" type="button" aria-label="Поменять валюты местами"><svg viewBox="0 0 24 24"><path d="M7 4v16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4"/></svg></button>
+      <div class="field">
+        <label for="curB">Ваша валюта</label>
+        <select id="curB"></select>
+      </div>
     </div>
-    <p class="rate-hint" id="rateHint"></p>
+    <div class="field">
+      <label for="rateAB">Курс, по которому вы меняли. Заполните любое из двух полей.</label>
+      <div class="rate-line"><span id="labelAB">1 THB =</span><input id="rateAB" type="text" inputmode="decimal" autocomplete="off"><span id="unitAB">RUB</span></div>
+      <div class="rate-line"><span id="labelBA">1 RUB =</span><input id="rateBA" type="text" inputmode="decimal" autocomplete="off" aria-label="Обратный курс"><span id="unitBA">THB</span></div>
+    </div>
+    <p class="note" id="rateNote"></p>
+    <div class="actions">
+      <button class="btn-ghost" id="cancel" type="button">Отмена</button>
+      <button class="btn-primary" id="save" type="submit">Сохранить</button>
+    </div>
   </form>
 
   <div class="rows">
-    <button class="row active" id="row-thb" type="button" data-cur="thb">
-      <svg class="flag" viewBox="0 0 9 6" aria-hidden="true"><rect width="9" height="6" fill="#A51931"/><rect y="1" width="9" height="4" fill="#F4F5F8"/><rect y="2" width="9" height="2" fill="#2D2A4A"/></svg>
-      <span class="code">THB<small>Бат ฿</small></span>
-      <span class="value"><span class="expr" id="expr-thb"></span><span class="num" id="val-thb">0</span></span>
+    <button class="row active" id="row-a" type="button" data-side="a">
+      <span class="flag" id="flag-a" aria-hidden="true"></span>
+      <span class="code"><span id="code-a"></span><small id="name-a"></small></span>
+      <span class="value"><span class="expr" id="expr-a"></span><span class="num" id="val-a">0</span></span>
     </button>
-    <button class="row" id="row-rub" type="button" data-cur="rub">
-      <svg class="flag" viewBox="0 0 9 6" aria-hidden="true"><rect width="9" height="6" fill="#fff"/><rect y="2" width="9" height="2" fill="#0039A6"/><rect y="4" width="9" height="2" fill="#D52B1E"/></svg>
-      <span class="code">RUB<small>Рубль ₽</small></span>
-      <span class="value"><span class="expr" id="expr-rub"></span><span class="num" id="val-rub">0</span></span>
+    <button class="row" id="row-b" type="button" data-side="b">
+      <span class="flag" id="flag-b" aria-hidden="true"></span>
+      <span class="code"><span id="code-b"></span><small id="name-b"></small></span>
+      <span class="value"><span class="expr" id="expr-b"></span><span class="num" id="val-b">0</span></span>
     </button>
   </div>
 
@@ -198,23 +227,92 @@
 
 <script>
 (function () {
-  var DEFAULT_RATE = 2.78;
-  var rate = DEFAULT_RATE;
-  try { var saved = parseFloat(localStorage.getItem("thbRubRate")); if (saved > 0) rate = saved; } catch (e) {}
+  // code: [full name, short name, symbol, flag, typical small price]
+  var CURRENCIES = {
+    AED: ["Дирхам ОАЭ", "Дирхам", "AED", "🇦🇪", 5],
+    AMD: ["Армянский драм", "Драм", "֏", "🇦🇲", 500],
+    ARS: ["Аргентинское песо", "Песо", "$", "🇦🇷", 1000],
+    AZN: ["Азербайджанский манат", "Манат", "₼", "🇦🇿", 1],
+    BRL: ["Бразильский реал", "Реал", "R$", "🇧🇷", 5],
+    BYN: ["Белорусский рубль", "Бел. рубль", "Br", "🇧🇾", 2],
+    CHF: ["Швейцарский франк", "Франк", "Fr", "🇨🇭", 1],
+    CNY: ["Китайский юань", "Юань", "¥", "🇨🇳", 10],
+    EGP: ["Египетский фунт", "Фунт", "E£", "🇪🇬", 50],
+    EUR: ["Евро", "Евро", "€", "🇪🇺", 1],
+    GBP: ["Фунт стерлингов", "Фунт", "£", "🇬🇧", 1],
+    GEL: ["Грузинский лари", "Лари", "₾", "🇬🇪", 2],
+    IDR: ["Индонезийская рупия", "Рупия", "Rp", "🇮🇩", 10000],
+    ILS: ["Израильский шекель", "Шекель", "₪", "🇮🇱", 5],
+    INR: ["Индийская рупия", "Рупия", "₹", "🇮🇳", 50],
+    JPY: ["Японская иена", "Иена", "¥", "🇯🇵", 100],
+    KGS: ["Киргизский сом", "Сом", "сом", "🇰🇬", 100],
+    KHR: ["Камбоджийский риель", "Риель", "៛", "🇰🇭", 4000],
+    KRW: ["Южнокорейская вона", "Вона", "₩", "🇰🇷", 1000],
+    KZT: ["Казахстанский тенге", "Тенге", "₸", "🇰🇿", 500],
+    LAK: ["Лаосский кип", "Кип", "₭", "🇱🇦", 10000],
+    LKR: ["Шри-ланкийская рупия", "Рупия", "Rs", "🇱🇰", 200],
+    MNT: ["Монгольский тугрик", "Тугрик", "₮", "🇲🇳", 2000],
+    MVR: ["Мальдивская руфия", "Руфия", "Rf", "🇲🇻", 20],
+    MXN: ["Мексиканское песо", "Песо", "$", "🇲🇽", 20],
+    MYR: ["Малайзийский ринггит", "Ринггит", "RM", "🇲🇾", 5],
+    NPR: ["Непальская рупия", "Рупия", "Rs", "🇳🇵", 100],
+    PHP: ["Филиппинское песо", "Песо", "₱", "🇵🇭", 50],
+    RSD: ["Сербский динар", "Динар", "дин", "🇷🇸", 100],
+    RUB: ["Российский рубль", "Рубль", "₽", "🇷🇺", 100],
+    THB: ["Тайский бат", "Бат", "฿", "🇹🇭", 20],
+    TRY: ["Турецкая лира", "Лира", "₺", "🇹🇷", 20],
+    UAH: ["Украинская гривна", "Гривна", "₴", "🇺🇦", 20],
+    USD: ["Доллар США", "Доллар", "$", "🇺🇸", 1],
+    UZS: ["Узбекский сум", "Сум", "сўм", "🇺🇿", 10000],
+    VND: ["Вьетнамский донг", "Донг", "₫", "🇻🇳", 10000]
+  };
+  var QUICK_STEPS = [1, 2.5, 5, 10, 25, 50, 100];
 
-  var active = "thb";      // which row is being typed into
-  var input = "100";       // expression typed in the active row, e.g. "120+45*2"
+  // cfg.rate = how many units of B one unit of A costs
+  var cfg = { a: "THB", b: "RUB", rate: 2.78 };
+  try {
+    var savedCfg = JSON.parse(localStorage.getItem("fxCfg") || "null");
+    if (savedCfg && CURRENCIES[savedCfg.a] && CURRENCIES[savedCfg.b] && savedCfg.rate > 0) cfg = savedCfg;
+    else {
+      var oldRate = parseFloat(localStorage.getItem("thbRubRate"));   // rate saved by the first version
+      if (oldRate > 0) cfg.rate = oldRate;
+    }
+  } catch (e) {}
+
+  var active = "a";        // which row is being typed into
+  var input = "";          // expression typed in the active row, e.g. "120+45*2"
   var fresh = true;        // next digit starts a new number instead of appending
-  try { if (localStorage.getItem("thbRubDir") === "rub") active = "rub"; } catch (e) {}
+  try { var savedSide = localStorage.getItem("fxSide"); if (savedSide === "b") active = "b"; } catch (e) {}
+  input = String(CURRENCIES[cfg[active]][4] * 5);
 
   var $ = function (id) { return document.getElementById(id); };
   var fmt = function (n, maxFrac) {
     return n.toLocaleString("ru-RU", { maximumFractionDigits: maxFrac, minimumFractionDigits: 0 });
   };
+  // Money: no kopecks on big sums, a few significant digits on tiny ones.
+  function fmtMoney(v) {
+    if (v === 0) return "0";
+    if (v >= 1000) return fmt(v, 0);
+    if (v >= 1) return fmt(v, 2);
+    return v.toLocaleString("ru-RU", { maximumSignificantDigits: 3 });
+  }
+  function fmtShort(v) {
+    if (v >= 100) return fmt(v, 0);
+    if (v >= 1) return fmt(v, 1);
+    return v.toLocaleString("ru-RU", { maximumSignificantDigits: 2 });
+  }
+  function fmtRate(v) {
+    if (v >= 100) return fmt(v, 2);
+    if (v >= 1) return fmt(v, 4);
+    return v.toLocaleString("ru-RU", { maximumSignificantDigits: 4 });
+  }
+  function parseNum(s) { return parseFloat(String(s).replace(/\s/g, "").replace(",", ".")); }
+  function cur(side) { return CURRENCIES[cfg[side]]; }
+  function convert(amount, from) { return from === "a" ? amount * cfg.rate : amount / cfg.rate; }
+  function saveCfg() { try { localStorage.setItem("fxCfg", JSON.stringify(cfg)); } catch (e) {} }
 
-  // Evaluate "a+b*c" with × before +. Only digits, one dot per number, + and *.
+  // Evaluate "a+b*c" with × before +. An unfinished tail like "5+" or "5*" is ignored.
   function evaluate(expr) {
-    // An unfinished tail like "5+" or "5*" is ignored.
     return expr.split("+").reduce(function (sum, term) {
       var factors = term.split("*").map(parseFloat).filter(function (f) { return !isNaN(f); });
       return factors.length ? sum + factors.reduce(function (p, f) { return p * f; }, 1) : sum;
@@ -233,21 +331,34 @@
     return parts.length > 1 ? intPart + "," + parts[1] : intPart;
   }
 
+  function renderCurrencies() {
+    ["a", "b"].forEach(function (side) {
+      var c = cur(side);
+      $("flag-" + side).textContent = c[3];
+      $("code-" + side).textContent = cfg[side];
+      $("name-" + side).textContent = c[1] + " " + c[2];
+    });
+    $("title").textContent = cur("a")[1] + " ⇄ " + cur("b")[1];
+    // show the direction where the number is at least 1, e.g. "1 ₽ = 278 ₫" rather than "1 ₫ = 0,0036 ₽"
+    var symA = cur("a")[2], symB = cur("b")[2];
+    $("rateLabel").innerHTML = cfg.rate >= 1
+      ? "1 " + symA + " = <b>" + fmtRate(cfg.rate) + "</b> " + symB
+      : "1 " + symB + " = <b>" + fmtRate(1 / cfg.rate) + "</b> " + symA;
+  }
+
   function render() {
-    var other = active === "thb" ? "rub" : "thb";
+    var other = active === "a" ? "b" : "a";
     var amount = evaluate(input || "0");
-    var converted = active === "thb" ? amount * rate : amount / rate;
 
     $("row-" + active).classList.add("active");
     $("row-" + other).classList.remove("active");
 
-    var typed = hasOp(input) ? prettyInput(input) || fmt(amount, 2) : prettyInput(input) || "0";
-    $("val-" + active).textContent = hasOp(input) ? fmt(amount, 2) : typed;
+    $("val-" + active).textContent = hasOp(input) ? fmtMoney(amount) : prettyInput(input) || "0";
     $("expr-" + active).textContent = hasOp(input) ? prettyExpr(input) : "";
-    $("val-" + other).textContent = fmt(converted, converted >= 1000 ? 0 : 2);
+    $("val-" + other).textContent = fmtMoney(convert(amount, active));
     $("expr-" + other).textContent = "";
 
-    $("rateLabel").textContent = fmt(rate, 4);
+    renderCurrencies();
     renderQuick();
     fitValues();
   }
@@ -267,15 +378,15 @@
 
   function renderQuick() {
     var q = $("quick");
-    var amounts = active === "thb" ? [20, 50, 100, 200, 500, 1000, 2000] : [100, 500, 1000, 2000, 5000, 10000];
-    var from = active === "thb" ? " ฿" : " ₽";
-    var to = active === "thb" ? " ₽" : " ฿";
+    var other = active === "a" ? "b" : "a";
+    var base = cur(active)[4];
+    var from = " " + cur(active)[2], to = " " + cur(other)[2];
     q.innerHTML = "";
-    amounts.forEach(function (a) {
+    QUICK_STEPS.forEach(function (step) {
+      var a = base * step;
       var b = document.createElement("button");
       b.type = "button";
-      var conv = active === "thb" ? a * rate : a / rate;
-      b.innerHTML = "<b>" + fmt(a, 0) + from + "</b> = " + fmt(conv, conv >= 100 ? 0 : 1) + to;
+      b.innerHTML = "<b>" + fmt(a, 2) + from + "</b> = " + fmtShort(convert(a, active)) + to;
       b.addEventListener("click", function () { input = String(a); fresh = true; render(); });
       q.appendChild(b);
     });
@@ -286,7 +397,7 @@
     fresh = false;
     if (k === "clear") { input = ""; }
     else if (k === "back") { input = input.slice(0, -1); }
-    else if (k === "swap") { switchTo(active === "thb" ? "rub" : "thb"); return; }
+    else if (k === "swap") { switchTo(active === "a" ? "b" : "a"); return; }
     else if (k === "+" || k === "*") {
       if (input === "") return;
       if (/[+*]$/.test(input)) input = input.slice(0, -1);
@@ -299,61 +410,125 @@
       input += last === "" ? "0." : ".";
     }
     else if (/^\d$/.test(k)) {
-      var cur = input.split(/[+*]/).pop();
-      if (cur === "0") input = input.slice(0, -1);     // no leading zeros
-      var frac = cur.split(".")[1];
+      var curNum = input.split(/[+*]/).pop();
+      if (curNum === "0") input = input.slice(0, -1);     // no leading zeros
+      var frac = curNum.split(".")[1];
       if (frac !== undefined && frac.length >= 2) return;
-      if (cur.replace(".", "").length >= 9) return;
+      if (curNum.replace(".", "").length >= 10) return;
       input += k;
     }
     render();
   }
 
-  function switchTo(cur) {
-    if (cur === active) return;
+  function switchTo(side) {
+    if (side === active) return;
     // carry the converted amount over so the other row becomes editable from the same value
-    var amount = evaluate(input || "0");
-    var converted = active === "thb" ? amount * rate : amount / rate;
-    active = cur;
+    var converted = convert(evaluate(input || "0"), active);
+    active = side;
     input = converted ? String(Math.round(converted * 100) / 100) : "";
     fresh = true;
-    try { localStorage.setItem("thbRubDir", active); } catch (e) {}
+    try { localStorage.setItem("fxSide", active); } catch (e) {}
     render();
   }
 
   document.querySelectorAll(".row").forEach(function (row) {
-    row.addEventListener("click", function () { switchTo(row.dataset.cur); });
+    row.addEventListener("click", function () { switchTo(row.dataset.side); });
   });
   $("pad").addEventListener("click", function (e) {
     var b = e.target.closest("button"); if (b) press(b.dataset.k);
   });
 
-  // Rate editor
-  var panel = $("ratePanel"), rateInput = $("rateInput");
-  function updateHint() {
-    var r = parseFloat(rateInput.value.replace(",", "."));
-    $("rateHint").textContent = r > 0
-      ? "Значит 1 ₽ = " + fmt(1 / r, 3) + " ฿, а 100 ฿ = " + fmt(100 * r, 0) + " ₽."
-      : "Введите число, например 2,78";
-  }
-  $("rateChip").addEventListener("click", function () {
-    panel.hidden = !panel.hidden;
-    if (!panel.hidden) { rateInput.value = fmt(rate, 4).replace(/\s/g, ""); updateHint(); rateInput.focus(); rateInput.select(); }
+  // Settings: currencies and rate
+  var settings = $("settings"), selA = $("curA"), selB = $("curB"), inAB = $("rateAB"), inBA = $("rateBA");
+  var codes = Object.keys(CURRENCIES).sort(function (x, y) { return CURRENCIES[x][0].localeCompare(CURRENCIES[y][0], "ru"); });
+  [selA, selB].forEach(function (sel) {
+    codes.forEach(function (code) {
+      var o = document.createElement("option");
+      o.value = code;
+      o.textContent = CURRENCIES[code][3] + " " + code + " · " + CURRENCIES[code][0];
+      sel.appendChild(o);
+    });
   });
-  rateInput.addEventListener("input", updateHint);
-  panel.addEventListener("submit", function (e) {
+
+  function draftLabels() {
+    var a = selA.value, b = selB.value;
+    $("labelAB").textContent = "1 " + a + " =";
+    $("unitAB").textContent = b;
+    $("labelBA").textContent = "1 " + b + " =";
+    $("unitBA").textContent = a;
+  }
+  function draftCheck() {
+    var r = typedReverse ? 1 / parseNum(inBA.value) : parseNum(inAB.value);
+    var same = selA.value === selB.value;
+    var sample = CURRENCIES[selA.value][4] * 5;
+    $("save").disabled = !(r > 0) || same;
+    $("rateNote").textContent = same ? "Выберите две разные валюты."
+      : r > 0 ? "Например, " + fmt(sample, 2) + " " + selA.value + " = " + fmtMoney(sample * r) + " " + selB.value + "."
+      : "Впишите курс, чтобы сохранить.";
+  }
+  function openSettings() {
+    selA.value = cfg.a; selB.value = cfg.b;
+    inAB.value = fmtRate(cfg.rate).replace(/\s/g, "");
+    inBA.value = fmtRate(1 / cfg.rate).replace(/\s/g, "");
+    typedReverse = false;
+    draftLabels(); draftCheck();
+    settings.hidden = false;
+    $("app").classList.add("editing");
+  }
+  function closeSettings() {
+    settings.hidden = true;
+    $("app").classList.remove("editing");
+  }
+  $("rateChip").addEventListener("click", function () { settings.hidden ? openSettings() : closeSettings(); });
+  $("cancel").addEventListener("click", closeSettings);
+
+  // The two rate fields mirror each other: typing one fills in the other.
+  var typedReverse = false;   // the rate was typed as "1 B = ? A", keep its exact value
+  inAB.addEventListener("input", function () {
+    typedReverse = false;
+    var r = parseNum(inAB.value);
+    inBA.value = r > 0 ? fmtRate(1 / r).replace(/\s/g, "") : "";
+    draftCheck();
+  });
+  inBA.addEventListener("input", function () {
+    typedReverse = true;
+    var r = parseNum(inBA.value);
+    inAB.value = r > 0 ? fmtRate(1 / r).replace(/\s/g, "") : "";
+    draftCheck();
+  });
+  function onCurrencyChange() {
+    // a new pair needs a new rate, unless it is the saved pair or the saved pair flipped
+    var a = selA.value, b = selB.value;
+    var r = a === cfg.a && b === cfg.b ? cfg.rate : a === cfg.b && b === cfg.a ? 1 / cfg.rate : 0;
+    inAB.value = r ? fmtRate(r).replace(/\s/g, "") : "";
+    inBA.value = r ? fmtRate(1 / r).replace(/\s/g, "") : "";
+    draftLabels(); draftCheck();
+    if (!r) inAB.focus();
+  }
+  selA.addEventListener("change", onCurrencyChange);
+  selB.addEventListener("change", onCurrencyChange);
+  $("swapCur").addEventListener("click", function () {
+    var a = selA.value; selA.value = selB.value; selB.value = a;
+    var ab = inAB.value; inAB.value = inBA.value; inBA.value = ab;
+    typedReverse = !typedReverse;
+    draftLabels(); draftCheck();
+  });
+
+  settings.addEventListener("submit", function (e) {
     e.preventDefault();
-    var r = parseFloat(rateInput.value.replace(/\s/g, "").replace(",", "."));
-    if (!(r > 0)) { updateHint(); return; }
-    rate = r;
-    try { localStorage.setItem("thbRubRate", String(r)); } catch (err) {}
-    panel.hidden = true;
+    var r = typedReverse ? 1 / parseNum(inBA.value) : parseNum(inAB.value);
+    if (!(r > 0) || selA.value === selB.value) return;
+    var changed = selA.value !== cfg.a || selB.value !== cfg.b;
+    cfg = { a: selA.value, b: selB.value, rate: r };
+    saveCfg();
+    if (changed) { input = String(cur(active)[4] * 5); fresh = true; }
+    closeSettings();
     render();
   });
 
   // Physical keyboard on desktop
   document.addEventListener("keydown", function (e) {
-    if (e.target === rateInput) return;
+    if (!settings.hidden) return;
     var map = { Backspace: "back", Escape: "clear", Delete: "clear", "x": "*", "X": "*", "Tab": "swap" };
     var k = map[e.key] || e.key;
     if (/^[\d+*.,]$/.test(k) || k === "back" || k === "clear" || k === "swap") {
