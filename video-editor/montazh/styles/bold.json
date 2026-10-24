@@ -1,0 +1,17 @@
+{
+  "description": "Громкий: КАПС, крупно, оранжевое активное слово, частые зумы (каждые ~2 с)",
+  "uppercase": true,
+  "font_size": 92,
+  "highlight_color": "#FF5A1F",
+  "accent_color": "#FF5A1F",
+  "outline": 7,
+  "max_words": 2,
+  "max_chars": 14,
+  "active_scale": 115,
+  "zoom": 1.18,
+  "shot_max": 2.0,
+  "position_y": 0.68,
+  "title_uppercase": true,
+  "title_box_color": "#FF5A1F",
+  "title_color": "#FFFFFF"
+}

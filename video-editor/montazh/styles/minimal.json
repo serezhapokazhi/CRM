@@ -1,0 +1,17 @@
+{
+  "description": "Минимализм: небольшие белые субтитры на полупрозрачной подложке, без подсветки слов и без зумов",
+  "font": "Montserrat SemiBold",
+  "font_size": 54,
+  "caption_box": true,
+  "box_alpha": 80,
+  "outline": 10,
+  "outline_color": "#000000",
+  "shadow": 0,
+  "karaoke": false,
+  "pop": false,
+  "max_words": 5,
+  "max_chars": 30,
+  "position_y": 0.8,
+  "zoom": 1.0,
+  "shot_max": 0
+}
